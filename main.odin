@@ -598,6 +598,7 @@ ResolveCollisionRec :: proc(rec1: ^Object, rec2: Rectangle) {
 		rec1.is_grounded = true
 	} else {
 		rec1.is_grounded = false
+
 	}
 
 }
