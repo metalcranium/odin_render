@@ -27,6 +27,7 @@ Object :: struct {
 	jump:        f32,
 	is_grounded: bool,
 	is_blocked:  bool,
+	source:      Rectangle,
 }
 Color :: struct {
 	red:   f32,
@@ -65,14 +66,15 @@ main :: proc() {
 
 	// vs_source := cstring(#load("vertex_shader.glsl"))
 	// fs_source := cstring(#load("fragment_shader.glsl"))
-	vs_source := cstring(#load("test_vs.glsl"))
-	fs_source := cstring(#load("test_fs.glsl"))
-	// vs_source := cstring(#load("vertex_texture_shader.glsl"))
-	// fs_source := cstring(#load("fragment_texture_shader.glsl"))
+	// vs_source := cstring(#load("test_vs.glsl"))
+	// fs_source := cstring(#load("test_fs.glsl"))
+	vs_source := cstring(#load("vertex_texture_shader.glsl"))
+	fs_source := cstring(#load("fragment_texture_shader.glsl"))
 	shader := CompileShader(vs_source, fs_source)
 	defer CleanupShader(shader)
 
-	tex := LoadTexture("./awesomeface.png")
+	stbi.set_flip_vertically_on_load(1)
+	tex := LoadTexture("./herowalk.png")
 
 	gl.GenTextures(1, &tex.texture)
 	gl.BindTexture(gl.TEXTURE_2D, tex.texture)
@@ -84,6 +86,7 @@ main :: proc() {
 	// width, height, nrChannels: i32
 	// filepath: cstring = "./awesomeface.png"
 	// data: [^]u8 = stbi.load(filepath, &width, &height, &nrChannels, 0)
+
 	if tex.data != nil {
 		gl.TexImage2D(
 			gl.TEXTURE_2D,
@@ -105,6 +108,8 @@ main :: proc() {
 
 	projection := glm.mat4Ortho3d(0, SCR_WIDTH, 0, SCR_HEIGHT, -1, 1)
 
+	fmt.println(tex.height)
+	fmt.println(tex.width)
 	player: Object = {
 		x           = 500,
 		y           = 500,
@@ -123,18 +128,24 @@ main :: proc() {
 		width  = 64,
 		height = 64,
 	}
+	source: Rectangle = {
+		x      = 0,
+		y      = 0,
+		width  = 0.32 / 2,
+		height = 1,
+	}
 
 	delta_time: f32 = GetDeltaTime(60)
 
 	for !glfw.WindowShouldClose(window) {
 		collided := CheckCollisionRec(player.rec, rec)
 		if collided {
-			fmt.println("collision")
+			// fmt.println("collision")
 			ResolveCollisionRec(&player, rec)
 			player.x = player.rec.x
 			player.y = player.rec.y
 		}
-		fmt.println("has collided", collided)
+		// fmt.println("has collided", collided)
 
 		UpdatePlayer(window, &player, delta_time)
 		ProcessInput(window)
@@ -149,8 +160,8 @@ main :: proc() {
 		// DrawTriangle(shader.program, TEAL)
 		// DrawRectangle(shader.program, 100, 0, 32, 32, CYAN)
 		DrawRectangle(shader.program, rec, YELLOW)
-		DrawRectangle(shader.program, player.rec, TEAL)
-		// DrawTexture(shader.program, &player.rec, tex)
+		// DrawRectangle(shader.program, player.rec, TEAL)
+		DrawTexture(shader.program, source, &player.rec, tex)
 		if collided {
 			DrawRectangle(shader.program, GetCollisionRec(player.rec, rec), RED)
 		}
@@ -382,8 +393,12 @@ DrawRectangle :: proc(shaderProgram: u32, rec: Rectangle, color: Color) {
 	gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, nil)
 	gl.BindVertexArray(0)
 }
-// TODO fix memory leak caused by loading texture every frame
-DrawTexture :: proc(shader_program: u32, rec: ^Rectangle, tex: ^Texture) {
+// TODO complete the source vertices
+DrawTexture :: proc(shader_program: u32, source: Rectangle, rec: ^Rectangle, tex: ^Texture) {
+	// x: f32 = 0
+	// y: f32 = 0
+	// size_width: f32 = 0.32
+	// size_height: f32 = 0.32
 	vertices: []f32 = {
 		rec.x, //
 		rec.y,
@@ -391,32 +406,32 @@ DrawTexture :: proc(shader_program: u32, rec: ^Rectangle, tex: ^Texture) {
 		1.0,
 		0.0,
 		0.0,
-		1.0,
-		1.0,
+		source.x,
+		source.y,
 		rec.x, //
 		rec.y + rec.height,
 		0.0,
 		0.0,
 		1.0,
 		0.0,
-		1.0,
-		0.0,
+		source.x,
+		source.y + source.height,
 		rec.x + rec.width, //
 		rec.y + rec.height,
 		0.0,
 		0.0,
 		0.0,
 		1.0,
-		0.0,
-		0.0,
+		source.x + source.width,
+		source.y + source.height,
 		rec.x + rec.width, //
 		rec.y,
 		0.0,
 		1.0,
 		1.0,
 		0.0,
-		0.0,
-		1.0,
+		source.x + source.width,
+		source.y,
 	}
 	indices: []u32 = {0, 1, 3, 1, 2, 3}
 	vao := CreateTextureBuffer(vertices, indices)
@@ -598,7 +613,5 @@ ResolveCollisionRec :: proc(rec1: ^Object, rec2: Rectangle) {
 		rec1.is_grounded = true
 	} else {
 		rec1.is_grounded = false
-
 	}
-
 }
