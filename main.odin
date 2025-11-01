@@ -74,7 +74,9 @@ main :: proc() {
 	defer CleanupShader(shader)
 
 	stbi.set_flip_vertically_on_load(1)
-	tex := LoadTexture("./herowalk.png")
+
+	path := cstring("./herowalk.png")
+	tex := LoadTexture(path)
 
 	gl.GenTextures(1, &tex.texture)
 	gl.BindTexture(gl.TEXTURE_2D, tex.texture)
