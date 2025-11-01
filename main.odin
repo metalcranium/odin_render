@@ -128,10 +128,11 @@ main :: proc() {
 		width  = 64,
 		height = 64,
 	}
+	index: f32 = 0
 	source: Rectangle = {
-		x      = 0,
+		x      = index * (32 / f32(tex.width)),
 		y      = 0,
-		width  = 0.32 / 2,
+		width  = 32 / f32(tex.width),
 		height = 1,
 	}
 
