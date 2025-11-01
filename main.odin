@@ -130,11 +130,17 @@ main :: proc() {
 	}
 	index: f32 = 0
 	source: Rectangle = {
-		x      = index * (32 / f32(tex.width)),
+		x      = 1,
 		y      = 0,
-		width  = 32 / f32(tex.width),
-		height = 1,
+		width  = 32,
+		height = 32,
 	}
+	// source: Rectangle = {
+	// 	x      = index * (32 / f32(tex.width)),
+	// 	y      = 0,
+	// 	width  = 32 / f32(tex.width),
+	// 	height = 1,
+	// }
 
 	delta_time: f32 = GetDeltaTime(60)
 
@@ -396,10 +402,12 @@ DrawRectangle :: proc(shaderProgram: u32, rec: Rectangle, color: Color) {
 }
 // TODO complete the source vertices
 DrawTexture :: proc(shader_program: u32, source: Rectangle, rec: ^Rectangle, tex: ^Texture) {
-	// x: f32 = 0
-	// y: f32 = 0
-	// size_width: f32 = 0.32
-	// size_height: f32 = 0.32
+	src: Rectangle = {
+		x      = source.x * (source.width / f32(tex.width)),
+		y      = source.y * (source.height / f32(tex.height)),
+		width  = source.width / f32(tex.width),
+		height = source.height / f32(tex.height),
+	}
 	vertices: []f32 = {
 		rec.x, //
 		rec.y,
@@ -407,32 +415,32 @@ DrawTexture :: proc(shader_program: u32, source: Rectangle, rec: ^Rectangle, tex
 		1.0,
 		0.0,
 		0.0,
-		source.x,
-		source.y,
+		src.x,
+		src.y,
 		rec.x, //
 		rec.y + rec.height,
 		0.0,
 		0.0,
 		1.0,
 		0.0,
-		source.x,
-		source.y + source.height,
+		src.x,
+		src.y + src.height,
 		rec.x + rec.width, //
 		rec.y + rec.height,
 		0.0,
 		0.0,
 		0.0,
 		1.0,
-		source.x + source.width,
-		source.y + source.height,
+		src.x + src.width,
+		src.y + src.height,
 		rec.x + rec.width, //
 		rec.y,
 		0.0,
 		1.0,
 		1.0,
 		0.0,
-		source.x + source.width,
-		source.y,
+		src.x + src.width,
+		src.y,
 	}
 	indices: []u32 = {0, 1, 3, 1, 2, 3}
 	vao := CreateTextureBuffer(vertices, indices)
