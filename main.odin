@@ -128,19 +128,12 @@ main :: proc() {
 		width  = 64,
 		height = 64,
 	}
-	index: f32 = 0
 	source: Rectangle = {
 		x      = 1,
 		y      = 0,
 		width  = 32,
 		height = 32,
 	}
-	// source: Rectangle = {
-	// 	x      = index * (32 / f32(tex.width)),
-	// 	y      = 0,
-	// 	width  = 32 / f32(tex.width),
-	// 	height = 1,
-	// }
 
 	delta_time: f32 = GetDeltaTime(60)
 
