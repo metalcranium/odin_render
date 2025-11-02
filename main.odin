@@ -9,6 +9,7 @@ import stbi "vendor:stb/image"
 SCR_WIDTH :: 1200
 SCR_HEIGHT :: 800
 GRAVITY :: 5
+FPS :: 60
 
 Vec2 :: struct {
 	x, y: f32,
@@ -40,6 +41,12 @@ Frame :: struct {
 	last_frame:    f64,
 	current_frame: f64,
 }
+FrameCounter :: struct {
+	frame:         u32,
+	frames:        u32,
+	frame_counter: u32,
+	frame_speed:   u32,
+}
 Texture :: struct {
 	width, height, nrChannels: i32,
 	filepath:                  cstring,
@@ -64,49 +71,29 @@ main :: proc() {
 	defer glfw.DestroyWindow(window)
 	defer glfw.Terminate()
 
-	// vs_source := cstring(#load("vertex_shader.glsl"))
-	// fs_source := cstring(#load("fragment_shader.glsl"))
-	// vs_source := cstring(#load("test_vs.glsl"))
-	// fs_source := cstring(#load("test_fs.glsl"))
-	vs_source := cstring(#load("vertex_texture_shader.glsl"))
-	fs_source := cstring(#load("fragment_texture_shader.glsl"))
-	shader := CompileShader(vs_source, fs_source)
-	defer CleanupShader(shader)
+	// color_vs_source := cstring(#load("vertex_shader.glsl"))
+	// color_fs_source := cstring(#load("fragment_shader.glsl"))
+	color_vs_source := cstring(#load("test_vs.glsl"))
+	color_fs_source := cstring(#load("test_fs.glsl"))
+	texture_vs_source := cstring(#load("vertex_texture_shader.glsl"))
+	texture_fs_source := cstring(#load("fragment_texture_shader.glsl"))
+	texture_shader := CompileShader(texture_vs_source, texture_fs_source)
+	color_shader := CompileShader(color_vs_source, color_fs_source)
+	defer CleanupShader(texture_shader)
 
 	stbi.set_flip_vertically_on_load(1)
 
 	path := cstring("./herowalk.png")
 	tex := LoadTexture(path)
 
-	gl.GenTextures(1, &tex.texture)
-	gl.BindTexture(gl.TEXTURE_2D, tex.texture)
-
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
-	// width, height, nrChannels: i32
-	// filepath: cstring = "./awesomeface.png"
-	// data: [^]u8 = stbi.load(filepath, &width, &height, &nrChannels, 0)
-
-	if tex.data != nil {
-		gl.TexImage2D(
-			gl.TEXTURE_2D,
-			0,
-			gl.RGB,
-			tex.width,
-			tex.height,
-			0,
-			gl.RGBA,
-			gl.UNSIGNED_BYTE,
-			tex.data,
-		)
-		gl.GenerateMipmap(gl.TEXTURE_2D)
-	} else {
-		fmt.println("yyou suck big time")
-	}
 	defer stbi.image_free(tex.data)
 	defer free(tex)
+
+	path = cstring("./wall.jpg")
+	tex1 := LoadTexture(path)
+	defer stbi.image_free(tex1.data)
+	defer free(tex1)
+
 
 	projection := glm.mat4Ortho3d(0, SCR_WIDTH, 0, SCR_HEIGHT, -1, 1)
 
@@ -130,16 +117,39 @@ main :: proc() {
 		width  = 64,
 		height = 64,
 	}
-	source: Rectangle = {
+	player.source = {
 		x      = 1,
 		y      = 0,
 		width  = 32,
 		height = 32,
 	}
+	source: Rectangle = {
+		x      = 0,
+		y      = 0,
+		width  = f32(tex1.width),
+		height = f32(tex1.height),
+	}
 
 	delta_time: f32 = GetDeltaTime(60)
 
+	animate: FrameCounter
+	animate.frames = 6
+	animate.frame_speed = 10
+
 	for !glfw.WindowShouldClose(window) {
+		animate.frame_counter += 1
+		if animate.frame_counter >= 60 / animate.frame_speed {
+			animate.frame_counter = 0
+			animate.frame += 1
+			player.source.x += 1
+			if u32(player.source.x) > animate.frames {
+				player.source.x = 1
+			}
+			if animate.frame >= animate.frames {
+				animate.frame = 0
+			}
+		}
+
 		collided := CheckCollisionRec(player.rec, rec)
 		if collided {
 			// fmt.println("collision")
@@ -154,18 +164,14 @@ main :: proc() {
 		gl.ClearColor(0.3, 0.3, 0.3, 1.0)
 		gl.Clear(gl.COLOR_BUFFER_BIT)
 
-		projectionloc := gl.GetUniformLocation(shader.program, "projection")
+		projectionloc := gl.GetUniformLocation(texture_shader.program, "projection")
 		gl.UniformMatrix4fv(projectionloc, 1, gl.FALSE, &projection[0][0])
 
-		gl.UseProgram(shader.program)
-
-		// DrawTriangle(shader.program, TEAL)
-		// DrawRectangle(shader.program, 100, 0, 32, 32, CYAN)
-		DrawRectangle(shader.program, rec, YELLOW)
-		// DrawRectangle(shader.program, player.rec, TEAL)
-		DrawTexture(shader.program, source, &player.rec, tex)
+		// DrawRectangle(color_shader.program, rec, TEAL)
+		DrawTexture(texture_shader.program, player.source, &player.rec, tex)
+		DrawTexture(texture_shader.program, source, &rec, tex1)
 		if collided {
-			DrawRectangle(shader.program, GetCollisionRec(player.rec, rec), RED)
+			DrawRectangle(color_shader.program, GetCollisionRec(player.rec, rec), RED)
 		}
 
 		glfw.SwapBuffers(window)
@@ -289,16 +295,15 @@ CreateBuffer :: proc(vertices: []f32, indices: []i32) -> u32 {
 
 	return vao
 }
+// TODO might neet to return the values for each of the buffers for cleanup
 CreateTextureBuffer :: proc(vertices: []f32, indices: []u32) -> u32 {
 
 	vbo, vao, ebo: u32
 	gl.GenVertexArrays(1, &vao)
 	gl.BindVertexArray(vao)
-	// defer gl.DeleteVertexArrays(1, &vao)
 
 	gl.GenBuffers(1, &vbo)
 	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
-	// defer gl.DeleteBuffers(1, &vbo)
 	gl.BufferData(
 		gl.ARRAY_BUFFER,
 		size_of(f32) * len(vertices),
@@ -308,7 +313,6 @@ CreateTextureBuffer :: proc(vertices: []f32, indices: []u32) -> u32 {
 
 	gl.GenBuffers(1, &ebo)
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo)
-	// defer gl.DeleteBuffers(1, &ebo)
 	gl.BufferData(
 		gl.ELEMENT_ARRAY_BUFFER,
 		size_of(u32) * len(indices),
@@ -359,7 +363,6 @@ DrawTriangle :: proc(shaderProgram: u32, color: Color) {
 
 }
 DrawRectangle :: proc(shaderProgram: u32, rec: Rectangle, color: Color) {
-	// vertices: []f32 = {-0.5, -0.5, 0.0, -0.5, 0.5, 0.0, 0.5, 0.5, 0.0, 0.5, -0.5, 0.0}
 	vertices: []f32 = {
 		rec.x,
 		rec.y,
@@ -393,7 +396,7 @@ DrawRectangle :: proc(shaderProgram: u32, rec: Rectangle, color: Color) {
 
 	gl.BindVertexArray(vao)
 	gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, nil)
-	gl.BindVertexArray(0)
+	// gl.BindVertexArray(0)
 }
 // TODO complete the source vertices
 DrawTexture :: proc(shader_program: u32, source: Rectangle, rec: ^Rectangle, tex: ^Texture) {
@@ -440,34 +443,7 @@ DrawTexture :: proc(shader_program: u32, source: Rectangle, rec: ^Rectangle, tex
 	indices: []u32 = {0, 1, 3, 1, 2, 3}
 	vao := CreateTextureBuffer(vertices, indices)
 	defer gl.DeleteVertexArrays(1, &vao)
-	// texture: u32
-	// gl.GenTextures(1, &texture)
-	// gl.BindTexture(gl.TEXTURE_2D, texture)
 
-	// gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
-	// gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
-	// gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR)
-	// gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
-	// // width, height, nrChannels: i32
-	// // filepath: cstring = "./awesomeface.png"
-	// // data: [^]u8 = stbi.load(filepath, &width, &height, &nrChannels, 0)
-	// if tex.data != nil {
-	// 	gl.TexImage2D(
-	// 		gl.TEXTURE_2D,
-	// 		0,
-	// 		gl.RGB,
-	// 		tex.width,
-	// 		tex.height,
-	// 		0,
-	// 		gl.RGBA,
-	// 		gl.UNSIGNED_BYTE,
-	// 		tex.data,
-	// 	)
-	// 	gl.GenerateMipmap(gl.TEXTURE_2D)
-	// } else {
-	// 	fmt.println("yyou suck big time")
-	// }
-	// // defer stbi.image_free(data)
 	trans := glm.mat4(1)
 	trans = glm.mat4Translate({1.0, 1.0, 0.0})
 
@@ -524,6 +500,11 @@ UpdatePlayer :: proc(window: glfw.WindowHandle, player: ^Object, delta_time: f32
 	} else {
 		player.direction.y = 0
 	}
+	if player.direction.x > 0 {
+		player.source.width = -32
+	} else {
+		player.source.width = 32
+	}
 }
 GetMousePosition :: proc(window: glfw.WindowHandle) -> Vec2 {
 	posx, posy := glfw.GetCursorPos(window)
@@ -556,6 +537,7 @@ CalculateDeltaTime :: proc(frame: ^Frame) {
 LoadTexture :: proc(filepath: cstring) -> ^Texture {
 	texture := new(Texture)
 	texture.filepath = cstring(filepath)
+	fmt.println("indexes: ", len(filepath))
 
 	texture.data = stbi.load(
 		texture.filepath,
@@ -564,6 +546,53 @@ LoadTexture :: proc(filepath: cstring) -> ^Texture {
 		&texture.nrChannels,
 		0,
 	)
+
+	gl.GenTextures(1, &texture.texture)
+	gl.BindTexture(gl.TEXTURE_2D, texture.texture)
+
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST) //gl.LINEAR_MIPMAP_LINEAR)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+	// width, height, nrChannels: i32
+	// filepath: cstring = "./awesomeface.png"
+	// data: [^]u8 = stbi.load(filepath, &width, &height, &nrChannels, 0)
+	file := string(filepath)
+	if file[len(file) - 3:len(file)] == "png" {
+		if texture.data != nil {
+			gl.TexImage2D(
+				gl.TEXTURE_2D,
+				0,
+				gl.RGB,
+				texture.width,
+				texture.height,
+				0,
+				gl.RGBA,
+				gl.UNSIGNED_BYTE,
+				texture.data,
+			)
+			gl.GenerateMipmap(gl.TEXTURE_2D)
+		} else {
+			fmt.println("yyou suck big time")
+		}
+	} else if file[len(file) - 3:len(file)] == "jpg" {
+		if texture.data != nil {
+			gl.TexImage2D(
+				gl.TEXTURE_2D,
+				0,
+				gl.RGB,
+				texture.width,
+				texture.height,
+				0,
+				gl.RGB,
+				gl.UNSIGNED_BYTE,
+				texture.data,
+			)
+			gl.GenerateMipmap(gl.TEXTURE_2D)
+		} else {
+			fmt.println("yyou suck big time")
+		}
+	}
 	return texture
 }
 CheckCollisionRec :: proc(rec1, rec2: Rectangle) -> bool {
