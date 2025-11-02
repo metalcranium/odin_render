@@ -36,11 +36,13 @@ Color :: struct {
 	blue:  f32,
 	alpha: f32,
 }
+// For colulating delta time, hence: f64
 Frame :: struct {
 	frames:        f32,
 	last_frame:    f64,
 	current_frame: f64,
 }
+// For animations and whaterver
 FrameCounter :: struct {
 	frame:         u32,
 	frames:        u32,
@@ -52,6 +54,13 @@ Texture :: struct {
 	filepath:                  cstring,
 	data:                      [^]u8,
 	texture:                   u32,
+}
+Shader :: struct {
+	vertex_shader_source:   cstring,
+	fragment_shader_source: cstring,
+	vertex_shader:          u32,
+	fragment_shader:        u32,
+	program:                u32,
 }
 RED :: Color{1.0, 0.0, 0.0, 1.0}
 GREEN :: Color{0.0, 1.0, 0.0, 1.0}
@@ -80,20 +89,19 @@ main :: proc() {
 	texture_shader := CompileShader(texture_vs_source, texture_fs_source)
 	color_shader := CompileShader(color_vs_source, color_fs_source)
 	defer CleanupShader(texture_shader)
+	defer CleanupShader(color_shader)
 
-	stbi.set_flip_vertically_on_load(1)
+	// stbi.set_flip_vertically_on_load(1)
 
 	path := cstring("./herowalk.png")
 	tex := LoadTexture(path)
-
 	defer stbi.image_free(tex.data)
 	defer free(tex)
 
-	path = cstring("./wall.jpg")
+	path = cstring("./container.jpg")
 	tex1 := LoadTexture(path)
 	defer stbi.image_free(tex1.data)
 	defer free(tex1)
-
 
 	projection := glm.mat4Ortho3d(0, SCR_WIDTH, 0, SCR_HEIGHT, -1, 1)
 
@@ -129,14 +137,18 @@ main :: proc() {
 		width  = f32(tex1.width),
 		height = f32(tex1.height),
 	}
+	frame: Frame
 
-	delta_time: f32 = GetDeltaTime(60)
+	delta_time: f32
 
 	animate: FrameCounter
 	animate.frames = 6
-	animate.frame_speed = 10
+	animate.frame_speed = 5
 
 	for !glfw.WindowShouldClose(window) {
+
+		CalculateDeltaTime(&frame, &delta_time)
+		// GetFPS(delta_time)
 		animate.frame_counter += 1
 		if animate.frame_counter >= 60 / animate.frame_speed {
 			animate.frame_counter = 0
@@ -161,31 +173,24 @@ main :: proc() {
 
 		UpdatePlayer(window, &player, delta_time)
 		ProcessInput(window)
-		gl.ClearColor(0.3, 0.3, 0.3, 1.0)
+
+		projectionloc := gl.GetUniformLocation(color_shader.program, "projection")
+		gl.UniformMatrix4fv(projectionloc, 1, gl.FALSE, &projection[0][0])
+		gl.ClearColor(0.3, 0.3, 0.3, 0.0)
 		gl.Clear(gl.COLOR_BUFFER_BIT)
 
-		projectionloc := gl.GetUniformLocation(texture_shader.program, "projection")
-		gl.UniformMatrix4fv(projectionloc, 1, gl.FALSE, &projection[0][0])
 
-		// DrawRectangle(color_shader.program, rec, TEAL)
 		DrawTexture(texture_shader.program, player.source, &player.rec, tex)
+		// DrawRectangle(color_shader.program, player.rec, TEAL)
 		DrawTexture(texture_shader.program, source, &rec, tex1)
-		if collided {
-			DrawRectangle(color_shader.program, GetCollisionRec(player.rec, rec), RED)
-		}
-
+		// if collided {
+		// 	DrawRectangle(color_shader.program, GetCollisionRec(player.rec, rec), RED)
+		// }
 		glfw.SwapBuffers(window)
 		glfw.PollEvents()
 	}
 }
 
-Shader :: struct {
-	vertex_shader_source:   cstring,
-	fragment_shader_source: cstring,
-	vertex_shader:          u32,
-	fragment_shader:        u32,
-	program:                u32,
-}
 CreateWindow :: proc(width: i32, height: i32, title: cstring) -> glfw.WindowHandle {
 	glfw.Init()
 	glfw.WindowHint(glfw.CONTEXT_VERSION_MAJOR, 3)
@@ -387,7 +392,7 @@ DrawRectangle :: proc(shaderProgram: u32, rec: Rectangle, color: Color) {
 	// trans += glm.mat4(1)
 	// trans = glm.mat4Rotate({0.0, 0.0, 1.0}, f32(glfw.GetTime()))
 
-	gl.UseProgram(shaderProgram)
+	// gl.UseProgram(shaderProgram)
 
 	transformloc := gl.GetUniformLocation(shaderProgram, "transform")
 	gl.UniformMatrix4fv(transformloc, 1, gl.FALSE, &trans[0][0])
@@ -396,7 +401,7 @@ DrawRectangle :: proc(shaderProgram: u32, rec: Rectangle, color: Color) {
 
 	gl.BindVertexArray(vao)
 	gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, nil)
-	// gl.BindVertexArray(0)
+	gl.BindVertexArray(0)
 }
 // TODO complete the source vertices
 DrawTexture :: proc(shader_program: u32, source: Rectangle, rec: ^Rectangle, tex: ^Texture) {
@@ -406,7 +411,7 @@ DrawTexture :: proc(shader_program: u32, source: Rectangle, rec: ^Rectangle, tex
 		width  = source.width / f32(tex.width),
 		height = source.height / f32(tex.height),
 	}
-	vertices: []f32 = {
+	vertices := []f32 {
 		rec.x, //
 		rec.y,
 		0.0,
@@ -449,12 +454,14 @@ DrawTexture :: proc(shader_program: u32, source: Rectangle, rec: ^Rectangle, tex
 
 	gl.UseProgram(shader_program)
 
+	gl.Uniform1i(gl.GetUniformLocation(shader_program, "ourTexture"), 0)
 	transformloc := gl.GetUniformLocation(shader_program, "transform")
 	gl.UniformMatrix4fv(transformloc, 1, gl.FALSE, &trans[0][0])
 
 	gl.BindTexture(gl.TEXTURE_2D, tex.texture)
 	gl.BindVertexArray(vao)
 	gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, nil)
+	gl.BindVertexArray(0)
 }
 UpdatePlayer :: proc(window: glfw.WindowHandle, player: ^Object, delta_time: f32) {
 	player.x += player.speed * player.direction.x
@@ -515,28 +522,31 @@ GetDeltaTime :: proc(target_fps: f32) -> f32 {
 	delta_time := 1000.0 / target_fps / 1000.0
 	return delta_time
 }
-GetFPS :: proc() {
-
+GetFPS :: proc(delta_time: f32) {
+	fps := 1000.0 / delta_time / 1000.0
+	fmt.println(fps)
 }
 // TODO create frame struct
-CalculateDeltaTime :: proc(frame: ^Frame) {
-	delta_time: f32
+CalculateDeltaTime :: proc(frame: ^Frame, delta_time: ^f32) -> ^f32 {
 	frame.frames += 1
 	frame.current_frame = glfw.GetTime()
 	// frame.frame_delta = frame.current_frame - frame.last_frame
 	if frame.current_frame - frame.last_frame >= 1 {
-		delta_time = 1000 / frame.frames / 1000
+		delta_time^ = 1000 / frame.frames / 1000
 		// if delta_time < 0.01666 {
 		// 	delta_time = 0.01666
 		// }
-		fmt.println(f32(delta_time))
+		fmt.println(f32(delta_time^))
 		frame.frames = 0
 		frame.last_frame += 1
 	}
+	return delta_time
 }
 LoadTexture :: proc(filepath: cstring) -> ^Texture {
 	texture := new(Texture)
 	texture.filepath = cstring(filepath)
+
+	stbi.set_flip_vertically_on_load(1)
 	fmt.println("indexes: ", len(filepath))
 
 	texture.data = stbi.load(
@@ -552,7 +562,7 @@ LoadTexture :: proc(filepath: cstring) -> ^Texture {
 
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST) //gl.LINEAR_MIPMAP_LINEAR)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST) //gl.LINEAR_MIPMAP_LINEAR)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
 	// width, height, nrChannels: i32
 	// filepath: cstring = "./awesomeface.png"
@@ -563,7 +573,7 @@ LoadTexture :: proc(filepath: cstring) -> ^Texture {
 			gl.TexImage2D(
 				gl.TEXTURE_2D,
 				0,
-				gl.RGB,
+				gl.RGBA,
 				texture.width,
 				texture.height,
 				0,
