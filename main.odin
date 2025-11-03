@@ -103,7 +103,12 @@ main :: proc() {
 	defer stbi.image_free(tex1.data)
 	defer free(tex1)
 
-	projection := glm.mat4Ortho3d(0, SCR_WIDTH, 0, SCR_HEIGHT, -1, 1)
+	path = cstring("./wall.jpg")
+	tex2 := LoadTexture(path)
+	defer stbi.image_free(tex2.data)
+	defer free(tex2)
+
+	// projection := glm.mat4Ortho3d(0, SCR_WIDTH, 0, SCR_HEIGHT, -1, 1)
 
 	fmt.println(tex.height)
 	fmt.println(tex.width)
@@ -136,6 +141,18 @@ main :: proc() {
 		y      = 0,
 		width  = f32(tex1.width),
 		height = f32(tex1.height),
+	}
+	background: Rectangle = {
+		x      = 0,
+		y      = 0,
+		width  = SCR_WIDTH,
+		height = SCR_HEIGHT,
+	}
+	bg_source: Rectangle = {
+		x      = 0,
+		y      = 0,
+		width  = f32(tex2.width),
+		height = f32(tex2.height),
 	}
 	frame: Frame
 
@@ -174,18 +191,21 @@ main :: proc() {
 		UpdatePlayer(window, &player, delta_time)
 		ProcessInput(window)
 
-		projectionloc := gl.GetUniformLocation(color_shader.program, "projection")
-		gl.UniformMatrix4fv(projectionloc, 1, gl.FALSE, &projection[0][0])
 		gl.ClearColor(0.3, 0.3, 0.3, 0.0)
 		gl.Clear(gl.COLOR_BUFFER_BIT)
+		// projectionloc := gl.GetUniformLocation(color_shader.program, "projection")
+		// gl.UniformMatrix4fv(projectionloc, 1, gl.FALSE, &projection[0][0])
 
+		// DrawTexture(texture_shader.program, bg_source, &background, tex2)
+		// DrawTexture(texture_shader.program, 0, 0, SCR_WIDTH, SCR_HEIGHT, tex2^)
 
 		DrawTexture(texture_shader.program, player.source, &player.rec, tex)
-		// DrawRectangle(color_shader.program, player.rec, TEAL)
-		DrawTexture(texture_shader.program, source, &rec, tex1)
-		// if collided {
-		// 	DrawRectangle(color_shader.program, GetCollisionRec(player.rec, rec), RED)
-		// }
+		// DrawRectangle(color_shader.program, player.rec, YELLOW)
+		DrawRectangle(color_shader.program, rec, TEAL)
+		// DrawTexture(texture_shader.program, source, &rec, tex1)
+		if collided {
+			DrawRectangle(color_shader.program, GetCollisionRec(player.rec, rec), RED)
+		}
 		glfw.SwapBuffers(window)
 		glfw.PollEvents()
 	}
@@ -367,7 +387,7 @@ DrawTriangle :: proc(shaderProgram: u32, color: Color) {
 	gl.DrawArrays(gl.TRIANGLES, 0, 3)
 
 }
-DrawRectangle :: proc(shaderProgram: u32, rec: Rectangle, color: Color) {
+DrawRectangle :: proc(shader_program: u32, rec: Rectangle, color: Color) {
 	vertices: []f32 = {
 		rec.x,
 		rec.y,
@@ -384,6 +404,7 @@ DrawRectangle :: proc(shaderProgram: u32, rec: Rectangle, color: Color) {
 	}
 	indices: []i32 = {0, 1, 3, 1, 2, 3}
 
+	projection := glm.mat4Ortho3d(0, SCR_WIDTH, 0, SCR_HEIGHT, -1, 1)
 	vao := CreateBuffer(vertices, indices)
 	defer gl.DeleteVertexArrays(1, &vao)
 
@@ -392,19 +413,24 @@ DrawRectangle :: proc(shaderProgram: u32, rec: Rectangle, color: Color) {
 	// trans += glm.mat4(1)
 	// trans = glm.mat4Rotate({0.0, 0.0, 1.0}, f32(glfw.GetTime()))
 
-	// gl.UseProgram(shaderProgram)
+	gl.UseProgram(shader_program)
 
-	transformloc := gl.GetUniformLocation(shaderProgram, "transform")
+	projectionloc := gl.GetUniformLocation(shader_program, "projection")
+	gl.UniformMatrix4fv(projectionloc, 1, gl.FALSE, &projection[0][0])
+	transformloc := gl.GetUniformLocation(shader_program, "transform")
 	gl.UniformMatrix4fv(transformloc, 1, gl.FALSE, &trans[0][0])
-	vertexColorLocation := gl.GetUniformLocation(shaderProgram, "ourColor")
+	vertexColorLocation := gl.GetUniformLocation(shader_program, "color")
 	gl.Uniform4f(vertexColorLocation, color.red, color.green, color.blue, color.alpha)
 
 	gl.BindVertexArray(vao)
 	gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, nil)
 	gl.BindVertexArray(0)
 }
-// TODO complete the source vertices
-DrawTexture :: proc(shader_program: u32, source: Rectangle, rec: ^Rectangle, tex: ^Texture) {
+DrawTexture :: proc {
+	DrawTexture_Rec,
+	DrawTexture_Texture,
+}
+DrawTexture_Rec :: proc(shader_program: u32, source: Rectangle, rec: ^Rectangle, tex: ^Texture) {
 	src: Rectangle = {
 		x      = source.x * (source.width / f32(tex.width)),
 		y      = source.y * (source.height / f32(tex.height)),
@@ -446,6 +472,8 @@ DrawTexture :: proc(shader_program: u32, source: Rectangle, rec: ^Rectangle, tex
 		src.y,
 	}
 	indices: []u32 = {0, 1, 3, 1, 2, 3}
+
+	projection := glm.mat4Ortho3d(0, SCR_WIDTH, 0, SCR_HEIGHT, -1, 1)
 	vao := CreateTextureBuffer(vertices, indices)
 	defer gl.DeleteVertexArrays(1, &vao)
 
@@ -454,6 +482,8 @@ DrawTexture :: proc(shader_program: u32, source: Rectangle, rec: ^Rectangle, tex
 
 	gl.UseProgram(shader_program)
 
+	projectionloc := gl.GetUniformLocation(shader_program, "projection")
+	gl.UniformMatrix4fv(projectionloc, 1, gl.FALSE, &projection[0][0])
 	gl.Uniform1i(gl.GetUniformLocation(shader_program, "ourTexture"), 0)
 	transformloc := gl.GetUniformLocation(shader_program, "transform")
 	gl.UniformMatrix4fv(transformloc, 1, gl.FALSE, &trans[0][0])
@@ -462,6 +492,59 @@ DrawTexture :: proc(shader_program: u32, source: Rectangle, rec: ^Rectangle, tex
 	gl.BindVertexArray(vao)
 	gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, nil)
 	gl.BindVertexArray(0)
+}
+DrawTexture_Texture :: proc(shader_program: u32, x, y, width, height: f32, texture: Texture) {
+	vertices := []f32 {
+		x, //
+		y,
+		0.0,
+		1.0,
+		0.0,
+		0.0,
+		0,
+		0,
+		x, //
+		y + height,
+		0.0,
+		0.0,
+		1.0,
+		0.0,
+		0,
+		1,
+		x + width, //
+		x + height,
+		0.0,
+		0.0,
+		0.0,
+		1.0,
+		1,
+		1,
+		x + width, //
+		y,
+		0.0,
+		1.0,
+		1.0,
+		0.0,
+		1,
+		0,
+	}
+	indices: []u32 = {0, 1, 3, 1, 2, 3}
+
+	projection := glm.mat4Ortho3d(0, SCR_WIDTH, 0, SCR_HEIGHT, -1, 1)
+	vao := CreateTextureBuffer(vertices, indices)
+	defer gl.DeleteVertexArrays(1, &vao)
+
+	gl.UseProgram(shader_program)
+	projectionloc := gl.GetUniformLocation(shader_program, "projection")
+	gl.UniformMatrix4fv(projectionloc, 1, gl.FALSE, &projection[0][0])
+
+	gl.Uniform1i(gl.GetUniformLocation(shader_program, "ourTexture"), 0)
+
+	gl.BindTexture(gl.TEXTURE_2D, texture.texture)
+	gl.BindVertexArray(vao)
+	gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, nil)
+	gl.BindVertexArray(0)
+
 }
 UpdatePlayer :: proc(window: glfw.WindowHandle, player: ^Object, delta_time: f32) {
 	player.x += player.speed * player.direction.x
