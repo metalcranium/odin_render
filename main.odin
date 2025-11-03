@@ -42,7 +42,7 @@ Frame :: struct {
 	last_frame:    f64,
 	current_frame: f64,
 }
-// For animations and whaterver
+// For animations and whaterver and other timer related things
 FrameCounter :: struct {
 	frame:         u32,
 	frames:        u32,
