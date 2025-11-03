@@ -2,6 +2,7 @@ package main
 
 import "core:fmt"
 import glm "core:math/linalg/glsl"
+import "core:time"
 import gl "vendor:OpenGL"
 import "vendor:glfw"
 import stbi "vendor:stb/image"
@@ -115,8 +116,8 @@ main :: proc() {
 	player: Object = {
 		x           = 500,
 		y           = 500,
-		width       = 100,
-		height      = 100,
+		width       = 32,
+		height      = 32,
 		direction   = {0, -1},
 		speed       = 10,
 		jump        = 50,
@@ -131,7 +132,7 @@ main :: proc() {
 		height = 64,
 	}
 	player.source = {
-		x      = 1,
+		x      = 0,
 		y      = 0,
 		width  = 32,
 		height = 32,
@@ -156,7 +157,7 @@ main :: proc() {
 	}
 	frame: Frame
 
-	delta_time: f32
+	delta_time := GetDeltaTime(FPS)
 
 	animate: FrameCounter
 	animate.frames = 6
@@ -164,6 +165,7 @@ main :: proc() {
 
 	for !glfw.WindowShouldClose(window) {
 
+		time.sleep(16000000) // milliseconds with 6 zeros
 		CalculateDeltaTime(&frame, &delta_time)
 		// GetFPS(delta_time)
 		animate.frame_counter += 1
@@ -199,9 +201,9 @@ main :: proc() {
 		// DrawTexture(texture_shader.program, bg_source, &background, tex2)
 		// DrawTexture(texture_shader.program, 0, 0, SCR_WIDTH, SCR_HEIGHT, tex2^)
 
-		DrawTexture(texture_shader.program, player.source, &player.rec, tex)
+		DrawTexture(texture_shader.program, player.source, player.rec, tex)
 		// DrawRectangle(color_shader.program, player.rec, YELLOW)
-		DrawRectangle(color_shader.program, rec, TEAL)
+		DrawRectangle(color_shader.program, rec, YELLOW)
 		// DrawTexture(texture_shader.program, source, &rec, tex1)
 		if collided {
 			DrawRectangle(color_shader.program, GetCollisionRec(player.rec, rec), RED)
@@ -430,7 +432,7 @@ DrawTexture :: proc {
 	DrawTexture_Rec,
 	DrawTexture_Texture,
 }
-DrawTexture_Rec :: proc(shader_program: u32, source: Rectangle, rec: ^Rectangle, tex: ^Texture) {
+DrawTexture_Rec :: proc(shader_program: u32, source: Rectangle, pos: Rectangle, tex: ^Texture) {
 	src: Rectangle = {
 		x      = source.x * (source.width / f32(tex.width)),
 		y      = source.y * (source.height / f32(tex.height)),
@@ -438,32 +440,32 @@ DrawTexture_Rec :: proc(shader_program: u32, source: Rectangle, rec: ^Rectangle,
 		height = source.height / f32(tex.height),
 	}
 	vertices := []f32 {
-		rec.x, //
-		rec.y,
+		pos.x, //
+		pos.y,
 		0.0,
 		1.0,
 		0.0,
 		0.0,
 		src.x,
 		src.y,
-		rec.x, //
-		rec.y + rec.height,
+		pos.x, //
+		pos.y + pos.height,
 		0.0,
 		0.0,
 		1.0,
 		0.0,
 		src.x,
 		src.y + src.height,
-		rec.x + rec.width, //
-		rec.y + rec.height,
+		pos.x + pos.width, //
+		pos.y + pos.height,
 		0.0,
 		0.0,
 		0.0,
 		1.0,
 		src.x + src.width,
 		src.y + src.height,
-		rec.x + rec.width, //
-		rec.y,
+		pos.x + pos.width, //
+		pos.y,
 		0.0,
 		1.0,
 		1.0,
@@ -627,7 +629,7 @@ CalculateDeltaTime :: proc(frame: ^Frame, delta_time: ^f32) -> ^f32 {
 }
 LoadTexture :: proc(filepath: cstring) -> ^Texture {
 	texture := new(Texture)
-	texture.filepath = cstring(filepath)
+	texture.filepath = filepath
 
 	stbi.set_flip_vertically_on_load(1)
 	fmt.println("indexes: ", len(filepath))
