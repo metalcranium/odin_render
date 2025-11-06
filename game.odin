@@ -17,7 +17,6 @@ Game :: proc(window: glfw.WindowHandle) {
 	defer CleanupShader(texture_shader)
 	defer CleanupShader(color_shader)
 
-
 	path := cstring("./herowalk.png")
 	tex := LoadTexture(path)
 	defer stbi.image_free(tex.data)
