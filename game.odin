@@ -17,7 +17,6 @@ Game :: proc(window: glfw.WindowHandle) {
 	defer CleanupShader(texture_shader)
 	defer CleanupShader(color_shader)
 
-	// stbi.set_flip_vertically_on_load(1)
 
 	path := cstring("./herowalk.png")
 	tex := LoadTexture(path)
@@ -33,8 +32,6 @@ Game :: proc(window: glfw.WindowHandle) {
 	tex2 := LoadTexture(path)
 	defer stbi.image_free(tex2.data)
 	defer free(tex2)
-
-	// projection := glm.mat4Ortho3d(0, SCR_WIDTH, 0, SCR_HEIGHT, -1, 1)
 
 	fmt.println(tex.height)
 	fmt.println(tex.width)

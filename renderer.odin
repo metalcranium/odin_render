@@ -106,6 +106,10 @@ ProcessInput :: proc(window: glfw.WindowHandle) {
 		glfw.SetWindowShouldClose(window, true)
 	}
 }
+CreatCamera :: proc(position: Vec2, target: Vec2) -> Camera2D {
+	camera: Camera2D
+	return camera
+}
 Update :: proc(window: glfw.WindowHandle) {
 	ProcessInput(window)
 }
