@@ -1,7 +1,9 @@
 package main
 
 import "core:fmt"
+import glm "core:math/linalg/glsl"
 import "core:time"
+import gl "vendor:OpenGL"
 import glfw "vendor:glfw"
 import stbi "vendor:stb/image"
 
@@ -112,19 +114,25 @@ Game :: proc(window: glfw.WindowHandle) {
 		UpdatePlayer(window, &player, delta_time)
 		ProcessInput(window)
 
+		// this acts as a sudo camera view
+		projection := glm.mat4Ortho3d(
+			player.x - 300,
+			player.x + 300,
+			player.y - 300,
+			player.y + 300,
+			-1,
+			1,
+		)
+
+		// projection += view
 		ClearScreen(GRAY)
-		// projectionloc := gl.GetUniformLocation(color_shader.program, "projection")
-		// gl.UniformMatrix4fv(projectionloc, 1, gl.FALSE, &projection[0][0])
 
-		// DrawTexture(texture_shader.program, bg_source, &background, tex2)
-		// DrawTexture(texture_shader.program, 0, 0, SCR_WIDTH, SCR_HEIGHT, tex2^)
-
-		DrawTexture(texture_shader.program, player.source, player.rec, tex)
+		DrawTexture(texture_shader.program, player.source, player.rec, tex, &projection)
 		// DrawRectangle(color_shader.program, player.rec, YELLOW)
-		DrawRectangle(color_shader.program, rec, YELLOW)
+		DrawRectangle(color_shader.program, rec, YELLOW, &projection)
 		// DrawTexture(texture_shader.program, source, &rec, tex1)
 		if collided {
-			DrawRectangle(color_shader.program, GetCollisionRec(player.rec, rec), RED)
+			DrawRectangle(color_shader.program, GetCollisionRec(player.rec, rec), RED, &projection)
 		}
 		glfw.SwapBuffers(window)
 		glfw.PollEvents()

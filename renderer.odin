@@ -262,7 +262,7 @@ DrawTriangle :: proc(shaderProgram: u32, color: Color) {
 	gl.DrawArrays(gl.TRIANGLES, 0, 3)
 
 }
-DrawRectangle :: proc(shader_program: u32, rec: Rectangle, color: Color) {
+DrawRectangle :: proc(shader_program: u32, rec: Rectangle, color: Color, projection: ^glm.mat4) {
 	vertices: []f32 = {
 		rec.x,
 		rec.y,
@@ -279,12 +279,12 @@ DrawRectangle :: proc(shader_program: u32, rec: Rectangle, color: Color) {
 	}
 	indices: []i32 = {0, 1, 3, 1, 2, 3}
 
-	projection := glm.mat4Ortho3d(0, SCR_WIDTH, 0, SCR_HEIGHT, -1, 1)
+	// projection := glm.mat4Ortho3d(0, SCR_WIDTH, 0, SCR_HEIGHT, -1, 1)
 	vao := CreateBuffer(vertices, indices)
 	defer gl.DeleteVertexArrays(1, &vao)
 
 	trans := glm.mat4(1.0)
-	trans = glm.mat4Translate({1.0, 1.0, 0.0})
+	// trans = glm.mat4Translate({1.0, 1.0, 0.0})
 	// trans += glm.mat4(1)
 	// trans = glm.mat4Rotate({0.0, 0.0, 1.0}, f32(glfw.GetTime()))
 
@@ -305,7 +305,13 @@ DrawTexture :: proc {
 	DrawTexture_Rec,
 	DrawTexture_Texture,
 }
-DrawTexture_Rec :: proc(shader_program: u32, source: Rectangle, pos: Rectangle, tex: ^Texture) {
+DrawTexture_Rec :: proc(
+	shader_program: u32,
+	source: Rectangle,
+	pos: Rectangle,
+	tex: ^Texture,
+	projection: ^glm.mat4,
+) {
 	src: Rectangle = {
 		x      = source.x * (source.width / f32(tex.width)),
 		y      = source.y * (source.height / f32(tex.height)),
@@ -348,7 +354,7 @@ DrawTexture_Rec :: proc(shader_program: u32, source: Rectangle, pos: Rectangle, 
 	}
 	indices: []u32 = {0, 1, 3, 1, 2, 3}
 
-	projection := glm.mat4Ortho3d(0, SCR_WIDTH, 0, SCR_HEIGHT, -1, 1)
+	// projection := glm.mat4Ortho3d(0, SCR_WIDTH, 0, SCR_HEIGHT, -1, 1)
 	vao := CreateTextureBuffer(vertices, indices)
 	defer gl.DeleteVertexArrays(1, &vao)
 
@@ -359,7 +365,7 @@ DrawTexture_Rec :: proc(shader_program: u32, source: Rectangle, pos: Rectangle, 
 
 	projectionloc := gl.GetUniformLocation(shader_program, "projection")
 	gl.UniformMatrix4fv(projectionloc, 1, gl.FALSE, &projection[0][0])
-	gl.Uniform1i(gl.GetUniformLocation(shader_program, "ourTexture"), 0)
+	// gl.Uniform1i(gl.GetUniformLocation(shader_program, "ourTexture"), 0)
 	transformloc := gl.GetUniformLocation(shader_program, "transform")
 	gl.UniformMatrix4fv(transformloc, 1, gl.FALSE, &trans[0][0])
 
