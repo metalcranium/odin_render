@@ -115,36 +115,37 @@ Game :: proc(window: glfw.WindowHandle) {
 			}
 		}
 
-		for i := 1; i < len(objects); i += 1 {
-			collided := CheckCollisionRec(player.rec, objects[i])
-			if collided {
-				fmt.println("collision")
-				ResolveCollision(&player, objects[i])
-				break
-			} else {
-				// fmt.println("not collision")
-				player.is_grounded = false
-				player.is_blocked = false
+		// for i := 1; i < len(objects); i += 1 {
+		// 	collided := CheckCollisionRec(player.rec, objects[i])
+		// 	if collided {
+		// 		fmt.println("collision")
+		// 		ResolveCollision(&player, objects[i])
+		// 		// break
+		// 	} else {
+		// 		// fmt.println("not collision")
+		// 		player.is_grounded = false
+		// 		player.is_blocked = false
 
-			}
-		}
+		// 	}
+		// }
+		CheckForCollisions(objects)
 
 		UpdatePlayer(window, &player, delta_time)
 		ProcessInput(window)
 
 		// this acts as a sudo camera view
 		projection := glm.mat4Ortho3d(
-			player.x - 500,
-			player.x + 500,
-			player.y - 500,
-			player.y + 500,
+			player.rec.x - 500,
+			player.rec.x + 500,
+			player.rec.y - 500,
+			player.rec.y + 500,
 			-1,
 			1,
 		)
 		ClearScreen(GRAY)
 
-		DrawTexture(texture_shader.program, player.source, player.rec, tex, &projection)
-		// DrawRectangle(color_shader.program, player.rec, TEAL, &projection)
+		// DrawTexture(texture_shader.program, player.source, player.rec, tex, &projection)
+		DrawRectangle(color_shader.program, player.rec, TEAL, &projection)
 		DrawRectangle(color_shader.program, rec, YELLOW, &projection)
 		DrawRectangle(color_shader.program, ground, BLUE, &projection)
 		// DrawTexture(texture_shader.program, source, &rec, tex1)
@@ -165,19 +166,12 @@ Game :: proc(window: glfw.WindowHandle) {
 
 }
 UpdatePlayer :: proc(window: glfw.WindowHandle, player: ^Object, delta_time: f32) {
-	player.x += player.speed * player.direction.x
-	player.y += GRAVITY * player.direction.y
+	// player.x += player.speed * player.direction.x
+	// player.y += GRAVITY * player.direction.y
+	player.rec.x += player.speed * player.direction.x
+	player.rec.y += GRAVITY * player.direction.y
 
-	player.rec = {player.x, player.y, player.width, player.height}
-	// if player.x + player.width > SCR_WIDTH {
-	// 	player.x -= player.speed * player.direction.x
-	// 	player.direction.x *= -1 * 0.2
-	// 	player.is_blocked = true
-	// } else if player.x < 0 {
-	// 	player.x -= player.speed * player.direction.x
-	// 	player.direction.x *= -1 * 0.2
-	// 	player.is_blocked = true
-	// }
+	// player.rec = {player.x, player.y, player.width, player.height}
 	if glfw.GetKey(window, glfw.KEY_RIGHT) == glfw.PRESS && player.is_blocked == false {
 		player.direction.x += 1 * delta_time
 		if player.direction.x > 1 {
@@ -198,13 +192,6 @@ UpdatePlayer :: proc(window: glfw.WindowHandle, player: ^Object, delta_time: f32
 			player.direction.y = 1
 		}
 	}
-	// if player.y < 0 {
-	// 	player.is_grounded = true
-	// 	player.is_blocked = false
-	// 	player.y += 0 - player.y
-	// } else {
-	// 	player.is_grounded = false
-	// }
 	if !player.is_grounded {
 		player.direction.y -= 1 * delta_time
 	} else {
@@ -214,5 +201,15 @@ UpdatePlayer :: proc(window: glfw.WindowHandle, player: ^Object, delta_time: f32
 		player.source.width = -32
 	} else {
 		player.source.width = 32
+	}
+}
+CheckForCollisions :: proc(objects: [dynamic]Rectangle) {
+	for &i in objects {
+		for j in objects {
+			collision := CheckCollisionRec(i, j)
+			if collision {
+				ResolveCollisionRec(&i, j)
+			}
+		}
 	}
 }

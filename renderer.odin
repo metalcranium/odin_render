@@ -562,9 +562,9 @@ GetCollisionRec :: proc(rec1, rec2: Rectangle) -> Rectangle {
 	}
 	return collision
 }
-ResolveCollision :: proc(rec1: ^Object, rec2: Rectangle) {
+ResolveCollision :: proc(rec1: ^Object, rec2: Object) {
 	sign: Vec2
-	collision := GetCollisionRec(rec1.rec, rec2)
+	collision := GetCollisionRec(rec1.rec, rec2.rec)
 	sign.x = rec1.x + rec1.width < rec2.x + rec2.width ? -1 : 1
 	sign.y = rec1.y + rec1.height < rec2.y + rec2.height ? -1 : 1
 	if collision.width < collision.height {
@@ -576,6 +576,27 @@ ResolveCollision :: proc(rec1: ^Object, rec2: Rectangle) {
 		rec1.y += collision.height * sign.y
 		// rec1.direction.y *= sign.y * 0.2
 		rec1.is_grounded = true
+		// rec1.is_blocked = false
+	} else {
+		// rec1.is_grounded = false
+		// rec1.is_blocked = false
+	}
+	// fmt.print("sign: ", sign)
+}
+ResolveCollisionRec :: proc(rec1: ^Rectangle, rec2: Rectangle) {
+	sign: Vec2
+	collision := GetCollisionRec(rec1^, rec2)
+	sign.x = rec1.x + rec1.width < rec2.x + rec2.width ? -1 : 1
+	sign.y = rec1.y + rec1.height < rec2.y + rec2.height ? -1 : 1
+	if collision.width < collision.height {
+		// rec1.is_blocked = true
+		rec1.x += collision.width * sign.x
+		// rec1.direction.x *= sign.x * 0.2
+	} else if collision.height < collision.width {
+		fmt.println(collision.width, ",", collision.height)
+		rec1.y += collision.height * sign.y
+		// rec1.direction.y *= sign.y * 0.2
+		// rec1.is_grounded = true
 		// rec1.is_blocked = false
 	} else {
 		// rec1.is_grounded = false
