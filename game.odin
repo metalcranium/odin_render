@@ -115,7 +115,7 @@ Game :: proc(window: glfw.WindowHandle) {
 			}
 		}
 
-		for i := 0; i < len(objects); i += 1 {
+		for i := 1; i < len(objects); i += 1 {
 			collided := CheckCollisionRec(player.rec, objects[i])
 			if collided {
 				fmt.println("collision")
@@ -143,8 +143,8 @@ Game :: proc(window: glfw.WindowHandle) {
 		)
 		ClearScreen(GRAY)
 
-		// DrawTexture(texture_shader.program, player.source, player.rec, tex, &projection)
-		DrawRectangle(color_shader.program, player.rec, TEAL, &projection)
+		DrawTexture(texture_shader.program, player.source, player.rec, tex, &projection)
+		// DrawRectangle(color_shader.program, player.rec, TEAL, &projection)
 		DrawRectangle(color_shader.program, rec, YELLOW, &projection)
 		DrawRectangle(color_shader.program, ground, BLUE, &projection)
 		// DrawTexture(texture_shader.program, source, &rec, tex1)
