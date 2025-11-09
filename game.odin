@@ -116,10 +116,10 @@ Game :: proc(window: glfw.WindowHandle) {
 
 		// this acts as a sudo camera view
 		projection := glm.mat4Ortho3d(
-			player.x - 300,
-			player.x + 300,
-			player.y - 300,
-			player.y + 300,
+			player.x - 500,
+			player.x + 500,
+			player.y - 500,
+			player.y + 500,
 			-1,
 			1,
 		)
