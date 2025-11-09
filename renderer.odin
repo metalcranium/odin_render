@@ -427,56 +427,6 @@ DrawTexture_Texture :: proc(shader_program: u32, x, y, width, height: f32, textu
 	gl.BindVertexArray(0)
 
 }
-UpdatePlayer :: proc(window: glfw.WindowHandle, player: ^Object, delta_time: f32) {
-	player.x += player.speed * player.direction.x
-	player.y += GRAVITY * player.direction.y
-
-	player.rec = {player.x, player.y, player.width, player.height}
-	if player.x + player.width > SCR_WIDTH {
-		player.x -= player.speed * player.direction.x
-		player.direction.x *= -1 * 0.2
-		player.is_blocked = true
-	} else if player.x < 0 {
-		player.x -= player.speed * player.direction.x
-		player.direction.x *= -1 * 0.2
-		player.is_blocked = true
-	}
-	if glfw.GetKey(window, glfw.KEY_RIGHT) == glfw.PRESS && player.is_blocked == false {
-		player.direction.x += 1 * delta_time
-		if player.direction.x > 1 {
-			player.direction.x = 1
-		}
-	} else if glfw.GetKey(window, glfw.KEY_LEFT) == glfw.PRESS && player.is_blocked == false {
-		player.direction.x += -1 * delta_time
-		if player.direction.x < -1 {
-			player.direction.x = -1
-		}
-	} else {
-		player.direction.x -= player.direction.x * delta_time
-	}
-	if glfw.GetKey(window, glfw.KEY_UP) == glfw.PRESS && player.is_grounded == true {
-		player.is_grounded = false
-		player.direction.y += player.jump * delta_time
-	} else {
-	}
-	if player.y < 0 {
-		player.is_grounded = true
-		player.is_blocked = false
-		player.y += 0 - player.y
-	} else {
-		player.is_grounded = false
-	}
-	if !player.is_grounded {
-		player.direction.y -= 1 * delta_time
-	} else {
-		player.direction.y = 0
-	}
-	if player.direction.x > 0 {
-		player.source.width = -32
-	} else {
-		player.source.width = 32
-	}
-}
 GetMousePosition :: proc(window: glfw.WindowHandle) -> Vec2 {
 	posx, posy := glfw.GetCursorPos(window)
 	mouse_pos := Vec2{f32(posx), SCR_HEIGHT - f32(posy)}
@@ -592,10 +542,16 @@ GetCollisionRec :: proc(rec1, rec2: Rectangle) -> Rectangle {
 	} else {
 		collision.x = rec2.x + (rec1.x - rec2.x)
 		collision.width = (rec2.x + rec2.width) - rec1.x
+		if collision.width > rec1.width {
+			collision.width = rec1.width
+		}
 	}
 	if rec1.y > rec2.y {
 		collision.y = rec1.y
 		collision.height = (rec2.y + rec2.height) - rec1.y
+		if collision.height > rec1.height {
+			collision.height = rec1.height
+		}
 
 	} else {
 		collision.y = rec2.y
@@ -606,19 +562,24 @@ GetCollisionRec :: proc(rec1, rec2: Rectangle) -> Rectangle {
 	}
 	return collision
 }
-ResolveCollisionRec :: proc(rec1: ^Object, rec2: Rectangle) {
+ResolveCollision :: proc(rec1: ^Object, rec2: Rectangle) {
 	sign: Vec2
 	collision := GetCollisionRec(rec1.rec, rec2)
-	sign.x = rec1.rec.x + rec1.rec.width < rec2.x + rec2.width ? -1 : 1
-	sign.y = rec1.rec.y + rec1.rec.height < rec2.y + rec2.height ? -1 : 1
+	sign.x = rec1.x + rec1.width < rec2.x + rec2.width ? -1 : 1
+	sign.y = rec1.y + rec1.height < rec2.y + rec2.height ? -1 : 1
 	if collision.width < collision.height {
-		rec1.rec.x += collision.width * sign.x
-		rec1.direction.x *= -1 * 0.2
+		// rec1.is_blocked = true
+		rec1.x += collision.width * sign.x
+		rec1.direction.x *= sign.x * 0.2
 	} else if collision.height < collision.width {
-		rec1.rec.y += collision.height * sign.y
-		rec1.direction.y = 0
+		fmt.println(collision.width, ",", collision.height)
+		rec1.y += collision.height * sign.y
+		// rec1.direction.y *= sign.y * 0.2
 		rec1.is_grounded = true
+		// rec1.is_blocked = false
 	} else {
-		rec1.is_grounded = false
+		// rec1.is_grounded = false
+		// rec1.is_blocked = false
 	}
+	// fmt.print("sign: ", sign)
 }

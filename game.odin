@@ -36,6 +36,8 @@ Game :: proc(window: glfw.WindowHandle) {
 
 	fmt.println(tex.height)
 	fmt.println(tex.width)
+
+	objects: [dynamic]Rectangle
 	player: Object = {
 		x           = 500,
 		y           = 500,
@@ -47,13 +49,15 @@ Game :: proc(window: glfw.WindowHandle) {
 		is_grounded = false,
 		is_blocked  = false,
 	}
-	player.rec = {player.x, player.y, player.width, player.height}
+	// player.rec = {player.x, player.y, player.width, player.height}
+	append(&objects, player.rec)
 	rec: Rectangle = {
 		x      = 500,
 		y      = 0,
 		width  = 64,
 		height = 64,
 	}
+	append(&objects, rec)
 	player.source = {
 		x      = 0,
 		y      = 0,
@@ -78,6 +82,13 @@ Game :: proc(window: glfw.WindowHandle) {
 		width  = f32(tex2.width),
 		height = f32(tex2.height),
 	}
+	ground: Rectangle = {
+		x      = 0,
+		y      = -50,
+		width  = 1000,
+		height = 50,
+	}
+	append(&objects, ground)
 	frame: Frame
 
 	delta_time := GetDeltaTime(FPS)
@@ -104,11 +115,18 @@ Game :: proc(window: glfw.WindowHandle) {
 			}
 		}
 
-		collided := CheckCollisionRec(player.rec, rec)
-		if collided {
-			ResolveCollisionRec(&player, rec)
-			player.x = player.rec.x
-			player.y = player.rec.y
+		for i := 0; i < len(objects); i += 1 {
+			collided := CheckCollisionRec(player.rec, objects[i])
+			if collided {
+				fmt.println("collision")
+				ResolveCollision(&player, objects[i])
+				break
+			} else {
+				// fmt.println("not collision")
+				player.is_grounded = false
+				player.is_blocked = false
+
+			}
 		}
 
 		UpdatePlayer(window, &player, delta_time)
@@ -123,19 +141,78 @@ Game :: proc(window: glfw.WindowHandle) {
 			-1,
 			1,
 		)
-
-		// projection += view
 		ClearScreen(GRAY)
 
-		DrawTexture(texture_shader.program, player.source, player.rec, tex, &projection)
-		// DrawRectangle(color_shader.program, player.rec, YELLOW)
+		// DrawTexture(texture_shader.program, player.source, player.rec, tex, &projection)
+		DrawRectangle(color_shader.program, player.rec, TEAL, &projection)
 		DrawRectangle(color_shader.program, rec, YELLOW, &projection)
+		DrawRectangle(color_shader.program, ground, BLUE, &projection)
 		// DrawTexture(texture_shader.program, source, &rec, tex1)
-		if collided {
-			DrawRectangle(color_shader.program, GetCollisionRec(player.rec, rec), RED, &projection)
+		for i in objects {
+			collided := CheckCollisionRec(player.rec, i)
+			if collided {
+				DrawRectangle(
+					color_shader.program,
+					GetCollisionRec(player.rec, i),
+					RED,
+					&projection,
+				)
+			}
 		}
 		glfw.SwapBuffers(window)
 		glfw.PollEvents()
 	}
 
+}
+UpdatePlayer :: proc(window: glfw.WindowHandle, player: ^Object, delta_time: f32) {
+	player.x += player.speed * player.direction.x
+	player.y += GRAVITY * player.direction.y
+
+	player.rec = {player.x, player.y, player.width, player.height}
+	// if player.x + player.width > SCR_WIDTH {
+	// 	player.x -= player.speed * player.direction.x
+	// 	player.direction.x *= -1 * 0.2
+	// 	player.is_blocked = true
+	// } else if player.x < 0 {
+	// 	player.x -= player.speed * player.direction.x
+	// 	player.direction.x *= -1 * 0.2
+	// 	player.is_blocked = true
+	// }
+	if glfw.GetKey(window, glfw.KEY_RIGHT) == glfw.PRESS && player.is_blocked == false {
+		player.direction.x += 1 * delta_time
+		if player.direction.x > 1 {
+			player.direction.x = 1
+		}
+	} else if glfw.GetKey(window, glfw.KEY_LEFT) == glfw.PRESS && player.is_blocked == false {
+		player.direction.x += -1 * delta_time
+		if player.direction.x < -1 {
+			player.direction.x = -1
+		}
+	} else {
+		player.direction.x -= player.direction.x * delta_time
+	}
+	if glfw.GetKey(window, glfw.KEY_UP) == glfw.PRESS && player.is_grounded == true {
+		player.is_grounded = false
+		player.direction.y += player.jump * delta_time
+		if player.direction.y > 1 {
+			player.direction.y = 1
+		}
+	}
+	// if player.y < 0 {
+	// 	player.is_grounded = true
+	// 	player.is_blocked = false
+	// 	player.y += 0 - player.y
+	// } else {
+	// 	player.is_grounded = false
+	// }
+	if !player.is_grounded {
+		player.direction.y -= 1 * delta_time
+	} else {
+		player.direction.y = 0
+	}
+	if player.direction.x > 0 {
+		player.source.width = -32
+	} else {
+		player.source.width = 32
+	}
 }
