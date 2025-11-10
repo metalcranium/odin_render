@@ -562,9 +562,9 @@ GetCollisionRec :: proc(rec1, rec2: Rectangle) -> Rectangle {
 	}
 	return collision
 }
-ResolveCollision :: proc(rec1: ^Object, rec2: Object) {
+ResolveCollision :: proc(rec1: ^Object, rec2: Rectangle) {
 	sign: Vec2
-	collision := GetCollisionRec(rec1.rec, rec2.rec)
+	collision := GetCollisionRec(rec1.rec, rec2)
 	sign.x = rec1.x + rec1.width < rec2.x + rec2.width ? -1 : 1
 	sign.y = rec1.y + rec1.height < rec2.y + rec2.height ? -1 : 1
 	if collision.width < collision.height {

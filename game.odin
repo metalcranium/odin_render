@@ -50,7 +50,13 @@ Game :: proc(window: glfw.WindowHandle) {
 		is_blocked  = false,
 	}
 	// player.rec = {player.x, player.y, player.width, player.height}
-	append(&objects, player.rec)
+	// append(&objects, player.rec)
+	player.source = {
+		x      = 0,
+		y      = 0,
+		width  = 32,
+		height = 32,
+	}
 	rec: Rectangle = {
 		x      = 500,
 		y      = 0,
@@ -58,12 +64,6 @@ Game :: proc(window: glfw.WindowHandle) {
 		height = 64,
 	}
 	append(&objects, rec)
-	player.source = {
-		x      = 0,
-		y      = 0,
-		width  = 32,
-		height = 32,
-	}
 	source: Rectangle = {
 		x      = 0,
 		y      = 0,
@@ -115,20 +115,20 @@ Game :: proc(window: glfw.WindowHandle) {
 			}
 		}
 
-		// for i := 1; i < len(objects); i += 1 {
-		// 	collided := CheckCollisionRec(player.rec, objects[i])
-		// 	if collided {
-		// 		fmt.println("collision")
-		// 		ResolveCollision(&player, objects[i])
-		// 		// break
-		// 	} else {
-		// 		// fmt.println("not collision")
-		// 		player.is_grounded = false
-		// 		player.is_blocked = false
+		for i := 0; i < len(objects); i += 1 {
+			collided := CheckCollisionRec(player.rec, objects[i])
+			if collided {
+				fmt.println("collision")
+				ResolveCollision(&player, objects[i])
+				// break
+			} else {
+				// fmt.println("not collision")
+				// player.is_grounded = false
+				// player.is_blocked = false
 
-		// 	}
-		// }
-		CheckForCollisions(objects)
+			}
+		}
+		// CheckForCollisions(objects)
 
 		UpdatePlayer(window, &player, delta_time)
 		ProcessInput(window)
@@ -166,12 +166,12 @@ Game :: proc(window: glfw.WindowHandle) {
 
 }
 UpdatePlayer :: proc(window: glfw.WindowHandle, player: ^Object, delta_time: f32) {
-	// player.x += player.speed * player.direction.x
-	// player.y += GRAVITY * player.direction.y
-	player.rec.x += player.speed * player.direction.x
-	player.rec.y += GRAVITY * player.direction.y
+	player.x += player.speed * player.direction.x
+	player.y += GRAVITY * player.direction.y
+	// player.rec.x += player.speed * player.direction.x
+	// player.rec.y += GRAVITY * player.direction.y
 
-	// player.rec = {player.x, player.y, player.width, player.height}
+	player.rec = {player.x, player.y, player.width, player.height}
 	if glfw.GetKey(window, glfw.KEY_RIGHT) == glfw.PRESS && player.is_blocked == false {
 		player.direction.x += 1 * delta_time
 		if player.direction.x > 1 {
@@ -202,6 +202,7 @@ UpdatePlayer :: proc(window: glfw.WindowHandle, player: ^Object, delta_time: f32
 	} else {
 		player.source.width = 32
 	}
+	player.is_grounded = false
 }
 CheckForCollisions :: proc(objects: [dynamic]Rectangle) {
 	for &i in objects {
