@@ -89,6 +89,7 @@ Game :: proc(window: glfw.WindowHandle) {
 		height = 50,
 	}
 	append(&objects, ground)
+
 	frame: Frame
 
 	delta_time := GetDeltaTime(FPS)
@@ -130,8 +131,8 @@ Game :: proc(window: glfw.WindowHandle) {
 		}
 		// CheckForCollisions(objects)
 
-		UpdatePlayer(window, &player, delta_time)
-		ProcessInput(window)
+		UpdatePlayer(&player, delta_time)
+		ProcessInput()
 
 		// this acts as a sudo camera view
 		projection := glm.mat4Ortho3d(
@@ -165,19 +166,20 @@ Game :: proc(window: glfw.WindowHandle) {
 	}
 
 }
-UpdatePlayer :: proc(window: glfw.WindowHandle, player: ^Object, delta_time: f32) {
+UpdatePlayer :: proc(player: ^Object, delta_time: f32) {
 	player.x += player.speed * player.direction.x
 	player.y += GRAVITY * player.direction.y
 	// player.rec.x += player.speed * player.direction.x
 	// player.rec.y += GRAVITY * player.direction.y
 
 	// player.rec = {player.x, player.y, player.width, player.height}
-	if glfw.GetKey(window, glfw.KEY_RIGHT) == glfw.PRESS && player.is_blocked == false {
+	// if glfw.GetKey(window, glfw.KEY_RIGHT) == glfw.PRESS && player.is_blocked == false {
+	if IsPressed(glfw.KEY_RIGHT) && player.is_blocked == false {
 		player.direction.x += 1 * delta_time
 		if player.direction.x > 1 {
 			player.direction.x = 1
 		}
-	} else if glfw.GetKey(window, glfw.KEY_LEFT) == glfw.PRESS && player.is_blocked == false {
+	} else if IsPressed(glfw.KEY_LEFT) && player.is_blocked == false {
 		player.direction.x += -1 * delta_time
 		if player.direction.x < -1 {
 			player.direction.x = -1
@@ -185,7 +187,7 @@ UpdatePlayer :: proc(window: glfw.WindowHandle, player: ^Object, delta_time: f32
 	} else {
 		player.direction.x -= player.direction.x * delta_time
 	}
-	if glfw.GetKey(window, glfw.KEY_UP) == glfw.PRESS && player.is_grounded == true {
+	if IsPressed(glfw.KEY_UP) && player.is_grounded == true {
 		player.is_grounded = false
 		player.direction.y += player.jump * delta_time
 		if player.direction.y > 1 {

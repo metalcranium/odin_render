@@ -102,17 +102,29 @@ ClearScreen :: proc(color: Color) {
 	gl.ClearColor(color.red, color.green, color.blue, color.alpha)
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 }
-ProcessInput :: proc(window: glfw.WindowHandle) {
-	if glfw.GetKey(window, glfw.KEY_ESCAPE) == glfw.PRESS {
+ProcessInput :: proc() {
+	window := glfw.GetCurrentContext()
+	// if glfw.GetKey(window, glfw.KEY_ESCAPE) == glfw.PRESS {
+	// 	glfw.SetWindowShouldClose(window, true)
+	// }
+	if IsPressed(glfw.KEY_ESCAPE) {
 		glfw.SetWindowShouldClose(window, true)
 	}
 }
-CreatCamera :: proc(position: Vec2, target: Vec2) -> Camera2D {
+IsPressed :: proc(key: i32) -> bool {
+	window := glfw.GetCurrentContext()
+	is_pressed: bool
+	if glfw.GetKey(window, key) == glfw.PRESS {
+		is_pressed = true
+	}
+	return is_pressed
+}
+CreateCamera :: proc(position: Vec2, target: Vec2) -> Camera2D {
 	camera: Camera2D
 	return camera
 }
 Update :: proc(window: glfw.WindowHandle) {
-	ProcessInput(window)
+	ProcessInput()
 }
 Draw :: proc(window: glfw.WindowHandle) {
 	// DrawTriangle(shader_program)
