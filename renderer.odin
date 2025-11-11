@@ -83,15 +83,15 @@ WHITE :: Color{1.0, 1.0, 1.0, 1.0}
 
 CreateWindow :: proc(width: i32, height: i32, title: cstring) -> glfw.WindowHandle {
 	glfw.Init()
-	// glfw.WindowHint(glfw.CONTEXT_VERSION_MAJOR, 3)
-	// glfw.WindowHint(glfw.CONTEXT_VERSION_MINOR, 3)
-	// glfw.WindowHint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
+	glfw.WindowHint(glfw.CONTEXT_VERSION_MAJOR, 3)
+	glfw.WindowHint(glfw.CONTEXT_VERSION_MINOR, 3)
+	glfw.WindowHint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
 
 	window := glfw.CreateWindow(width, height, title, nil, nil)
 	glfw.MakeContextCurrent(window)
 	gl.load_up_to(3, 3, glfw.gl_set_proc_address)
-	// glfw.SetFramebufferSizeCallback(window, framebuffer_size_callback)
-	// gl.Viewport(0, 0, SCR_WIDTH, SCR_HEIGHT)
+	glfw.SetFramebufferSizeCallback(window, framebuffer_size_callback)
+	gl.Viewport(0, 0, SCR_WIDTH, SCR_HEIGHT)
 
 	return window
 }
