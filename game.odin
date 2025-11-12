@@ -89,6 +89,13 @@ Game :: proc(window: glfw.WindowHandle) {
 		height = 50,
 	}
 	append(&objects, ground)
+	block: Rectangle = {
+		x      = 300,
+		y      = 0,
+		width  = 64,
+		height = 64,
+	}
+	append(&objects, block)
 
 	frame: Frame
 
@@ -97,6 +104,8 @@ Game :: proc(window: glfw.WindowHandle) {
 	animate: FrameCounter
 	animate.frames = 6
 	animate.frame_speed = 5
+
+	camera_offset: f32 = 300
 
 	for !glfw.WindowShouldClose(window) {
 
@@ -136,10 +145,10 @@ Game :: proc(window: glfw.WindowHandle) {
 
 		// this acts as a sudo camera view
 		projection := glm.mat4Ortho3d(
-			player.rec.x - 500,
-			player.rec.x + 500,
-			player.rec.y - 500,
-			player.rec.y + 500,
+			player.rec.x + player.width - camera_offset,
+			player.rec.x - player.width + camera_offset,
+			player.rec.y + player.height - camera_offset,
+			player.rec.y - player.height + camera_offset,
 			-1,
 			1,
 		)
@@ -149,6 +158,7 @@ Game :: proc(window: glfw.WindowHandle) {
 		DrawRectangle(color_shader.program, player.rec, TEAL, &projection)
 		DrawRectangle(color_shader.program, rec, YELLOW, &projection)
 		DrawRectangle(color_shader.program, ground, BLUE, &projection)
+		DrawRectangle(color_shader.program, block, GREEN, &projection)
 		// DrawTexture(texture_shader.program, source, &rec, tex1)
 		for i in objects {
 			collided := CheckCollisionRec(player.rec, i)
