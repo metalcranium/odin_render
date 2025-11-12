@@ -123,10 +123,11 @@ CreateCamera :: proc(position: Vec2, target: Vec2) -> Camera2D {
 	camera: Camera2D
 	return camera
 }
-Update :: proc(window: glfw.WindowHandle) {
+Update :: proc() {
 	ProcessInput()
 }
-Draw :: proc(window: glfw.WindowHandle) {
+Draw :: proc() {
+	window := glfw.GetCurrentContext()
 	// DrawTriangle(shader_program)
 	glfw.SwapBuffers(window)
 	glfw.PollEvents()
@@ -186,6 +187,7 @@ CreateBuffer :: proc(vertices: []f32, indices: []i32) -> u32 {
 	gl.BindVertexArray(vao)
 
 	gl.GenBuffers(1, &vbo)
+	// defer gl.DeleteBuffers(1, &vbo)
 	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
 	gl.BufferData(
 		gl.ARRAY_BUFFER,
@@ -440,7 +442,8 @@ DrawTexture_Texture :: proc(shader_program: u32, x, y, width, height: f32, textu
 	gl.BindVertexArray(0)
 
 }
-GetMousePosition :: proc(window: glfw.WindowHandle) -> Vec2 {
+GetMousePosition :: proc() -> Vec2 {
+	window := glfw.GetCurrentContext()
 	posx, posy := glfw.GetCursorPos(window)
 	mouse_pos := Vec2{f32(posx), SCR_HEIGHT - f32(posy)}
 	return mouse_pos
